@@ -1,16 +1,21 @@
 import os
-import sys
+import tempfile
 
 from evolvepro.src.process import generate_single_aa_mutants, generate_wt
 
-# sys.path.append(os.path.join(os.path.dirname(__file__), "../external/evolvepro"))
 
+def predict_evolvepro(protein_name, input_sequence, num_runs):
 
-def predict_structure():
-    pass
+    with tempfile.TemporaryDirectory() as temp_dir:
+        wt_file = os.path.join(temp_dir, f"{protein_name}_WT.fasta")
+        generate_wt(input_sequence, wt_file)
 
+        mutant_file = os.path.join(temp_dir, f"{protein_name}.fasta")
+        generate_single_aa_mutants(wt_file, mutant_file)
 
-generate_wt(
-    'ZKNVPQEPNZPCVZKNDINQORMVJNYUBNBIMZLZCXMVLQVPZXAUCYUBRMTVNZKDOKECOKPKQRNVV',
-    output_file='kelsic_WT.fasta',
-)
+        mutant = open(mutant_file, "r").read().strip()
+
+        for i in range(num_runs):
+            mutant += f"\n#####\n{i}"
+
+    return mutant
