@@ -1,0 +1,34 @@
+[project]
+name = "biogui"
+version = "0.0.1"
+description = "Bio GUI E-S complex activity test"
+authors = [
+    { name = "Eunkyung Choi", email = "rmarud202@uos.ac.kr" },
+    { name = "Hongseok Oh", email = "cxv0519@uos.ac.kr" }
+]
+
+requires-python = ">=3.10,<3.11"
+
+dependencies = [
+    "pandas",
+    "numpy",
+    "openpyxl",
+    "scikit-learn",
+    "scikit-learn-extra",
+    "xgboost",
+    "matplotlib",
+    "seaborn",
+    "biopython",
+    "scipy",
+    "torch",
+    "fair-esm",
+    "gradio",
+    "evolvepro @ git+https://github.com/mat10d/EvolvePro.git"
+]
+
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["biogui", "external/evolvepro"]
