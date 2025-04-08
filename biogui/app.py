@@ -27,17 +27,53 @@ with gr.Blocks() as demo:
             label="sequence to generate wildtype",
             placeholder="Enter sequence to generate wildtype",
         )
-        num_runs = gr.Slider(
-            label="number of runs", value=1, minimum=1, maximum=10, step=1
+        embedding_model = gr.Radio(
+            ["esm1b_t33_650M_UR50S", "esm2_t36_3B_UR50D"],
+            label="embedding model",
+            info="Choose your embedding model",
+            value="esm1b_t33_650M_UR50S",
+        )
+        toks_per_batch = gr.Slider(
+            label="tokens per batch",
+            value=512,
+            minimum=1,
+            maximum=4096,
+            step=1,
+            info="Choose the number of tokens per batch for embedding extraction",
+        )
+        num_rounds = gr.Dropdown(
+            list(range(1, 20)),
+            label="number of rounds",
+            info="Choose the number of rounds for evolution",
+            value="1",
+        )
+        number_of_variants = gr.Dropdown(
+            list(range(1, 20)),
+            label="number of variants",
+            info="Choose the number of variants for evolution",
+            value="12",
+        )
+        round_files = gr.Files(
+            file_types=[".xlsx"],
+            label="experimental round activity files",
+            file_count="multiple",
         )
 
-        output_text = gr.Textbox(label="Predicted activity label")
+        output_img = gr.Image(label="output image")
         predict_button = gr.Button("predict")
 
         predict_button.click(
             fn=predict_evolvepro,
-            inputs=[protein_name, input_sequence, num_runs],
-            outputs=[output_text],
+            inputs=[
+                protein_name,
+                input_sequence,
+                num_rounds,
+                embedding_model,
+                toks_per_batch,
+                number_of_variants,
+                round_files,
+            ],
+            outputs=[output_img],
         )
 
     with gr.Tab(label='Ours'):

@@ -23,6 +23,7 @@ dependencies = [
     "torch",
     "fair-esm",
     "gradio",
+    "loguru"
 ]
 
 [build-system]
