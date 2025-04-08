@@ -23,7 +23,6 @@ dependencies = [
     "torch",
     "fair-esm",
     "gradio",
-    "evolvepro @ git+https://github.com/mat10d/EvolvePro.git"
 ]
 
 [build-system]

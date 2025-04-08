@@ -4,9 +4,9 @@
 
 ```bash
 conda create -n bio python=3.10
-conda activate
+conda activate bio
 
-git clone https://github.com/sma1-rmarud/protein_demo.git
+git clone --recurse-submodules https://github.com/sma1-rmarud/protein_demo.git
 cd protein_demo
 
 pip install -e .
