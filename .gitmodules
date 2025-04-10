@@ -2,5 +2,5 @@
 	path = evolve_pro
 	url = https://github.com/mat10d/EvolvePro.git
 [submodule "external/evolvepro"]
-	path = external/evolvepro
-	url = https://github.com/mat10d/EvolvePro.git
+    path = external/evolvepro
+    url = https://github.com/sma1-rmarud/EvolvePro.git
