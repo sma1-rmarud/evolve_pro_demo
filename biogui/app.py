@@ -109,4 +109,4 @@ with gr.Blocks() as demo:
     #         outputs=[output_text],
     #     )
 
-demo.launch(debug=True)
+demo.launch()
