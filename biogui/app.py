@@ -4,6 +4,8 @@ import os
 
 from biogui.utils.evolvepro_utils import predict_evolvepro
 from biogui.utils.gnn_utils import predict_gnn
+from utils.evolvepro_utils import generate_n_mutant_combinations
+
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 custom_tmp = os.path.join(BASE_DIR, "tmp_gradio")
@@ -26,7 +28,8 @@ with gr.Blocks() as demo:
         elem_id="title",
     )
 
-    with gr.Tab(label='EvolvePro'):
+    with gr.Tab(label='EvolvePro_run_round'):
+        gr.Markdown("## 🔬 Run EvolvePro Evolution Round ")
         protein_name = gr.Textbox(
             label="protein name", placeholder="Enter protein name"
         )
@@ -82,6 +85,29 @@ with gr.Blocks() as demo:
             ],
             outputs=[output_img],
         )
+    with gr.Tab(label='EvolvePro_run_n_mutants'):
+        gr.Markdown("## 🔬 Generate N-mutant Combinations")
+        wt_fasta = gr.File(file_types=[".fasta"], label="Upload WT FASTA File")
+        mutant_file = gr.File(file_types=[".xlsx"], label="Upload Mutant Excel File")
+        n = gr.Slider(minimum=1, maximum=100, step=1, label="Number of Mutations (n)", value=2)
+        threshold = gr.Number(label="Activity Threshold", value=1.0)
+        generate_button = gr.Button("Generate Mutants")
+        output_text = gr.Textbox(label="Output Info")
+        output_file = gr.File(label="Download FASTA File")
+
+        def run_generate_n_mutants(wt_fasta, mutant_file, n, threshold):
+            with tempfile.TemporaryDirectory() as tmpdir:
+                output_path = os.path.join(tmpdir, f"n{n}_mutants.fasta")
+                msg = generate_n_mutant_combinations(wt_fasta.name, mutant_file.name, n, output_path, threshold)
+                return msg, output_path
+
+        generate_button.click(
+            fn=run_generate_n_mutants,
+            inputs=[wt_fasta, mutant_file, n, threshold],
+            outputs=[output_text, output_file]
+        )
+
+demo.launch(debug=True)
 
     # with gr.Tab(label='Ours'):
     #     with gr.Row(variant='panel'):
@@ -108,5 +134,3 @@ with gr.Blocks() as demo:
     #         inputs=[file_format_choice, file_output],
     #         outputs=[output_text],
     #     )
-
-demo.launch(debug=True)

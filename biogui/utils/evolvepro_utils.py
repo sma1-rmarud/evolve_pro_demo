@@ -2,15 +2,23 @@
 # https://colab.research.google.com/drive/1YCWvR73ItSsJn3P89yk_GY1g5GEJUlgy?usp=sharing
 
 import os
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
 import tempfile
 from argparse import Namespace
 from pathlib import Path
+
+from Bio import SeqIO
+from Bio.Seq import Seq
+from Bio.SeqRecord import SeqRecord
+from itertools import combinations
 
 from evolvepro.plm.esm.extract import concatenate_files
 from evolvepro.plm.esm.extract import run as extract_embeddings
 from evolvepro.src.evolve import evolve_experimental
 from evolvepro.src.plot import plot_variants_by_iteration, read_exp_data
-from evolvepro.src.process import generate_single_aa_mutants, generate_wt
+from evolvepro.src.process import generate_single_aa_mutants, generate_wt, generate_n_mutant_combinations
 from loguru import logger
 from PIL import Image
 
@@ -102,3 +110,42 @@ def predict_evolvepro(
         img = Image.open(img_path)
 
     return img
+        
+
+def generate_n_mutant_combinations(wt_fasta, mutant_file, n, output_file, threshold=1):
+    wt_sequence = str(SeqIO.read(wt_fasta, "fasta").seq)
+    mutants = pd.read_excel(mutant_file)
+    mutants = mutants[mutants['activity'] > threshold]
+    mutants[['position', 'mutant_aa']] = mutants['Variant'].str.extract(r'(\d+)([A-Z]+)', expand=True)
+    mutants['wt_aa'] = mutants.apply(lambda row: wt_sequence[int(row['position'])-1], axis=1)
+    mutants['variant'] = mutants['wt_aa'] + mutants['position'] + mutants['mutant_aa']
+
+    records = [SeqRecord(Seq(wt_sequence), id="WT", description="Wild-type sequence")]
+    mutant_combinations = list(combinations(mutants['variant'], n))
+
+    for combination in mutant_combinations:
+        positions = set()
+        valid_combination = True
+        mutant_sequence = wt_sequence
+        variant = ""
+
+        for mutant in combination:
+            wt_aa, position, mutant_aa = mutant[0], mutant[1:-1], mutant[-1]
+            i = int(position) - 1
+            if i in positions:
+                valid_combination = False
+                break
+            positions.add(i)
+            mutant_sequence = mutant_sequence[:i] + mutant_aa + mutant_sequence[i + 1:]
+            variant += f'{wt_aa}{position}{mutant_aa}_'
+
+        if valid_combination:
+            record = SeqRecord(Seq(mutant_sequence), id=variant.rstrip('_'), description="")
+            records.append(record)
+
+    os.makedirs(os.path.dirname(output_file), exist_ok=True)
+    with open(output_file, "w") as handle:
+        SeqIO.write(records, handle, "fasta")
+
+    return f"{len(records)} valid sequences written to {output_file}"
+
