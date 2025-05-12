@@ -1,19 +1,39 @@
-# This code is based on the following Colab notebook:
-# https://colab.research.google.com/drive/1YCWvR73ItSsJn3P89yk_GY1g5GEJUlgy?usp=sharing
-
 import os
 import tempfile
-from argparse import Namespace
 from pathlib import Path
+from argparse import Namespace
+from itertools import combinations
 
+import matplotlib.pyplot as plt
+from PIL import Image
+from loguru import logger
+
+import numpy as np
+import pandas as pd
+
+from Bio import SeqIO
+from Bio.Seq import Seq
+from Bio.SeqRecord import SeqRecord
+
+from evolvepro.src.evolve import evolve_experimental
 from evolvepro.plm.esm.extract import concatenate_files
 from evolvepro.plm.esm.extract import run as extract_embeddings
-from evolvepro.src.evolve import evolve_experimental
 from evolvepro.src.plot import plot_variants_by_iteration, read_exp_data
-from evolvepro.src.process import generate_single_aa_mutants, generate_wt
-from loguru import logger
-from PIL import Image
+from evolvepro.src.process import generate_wt, generate_single_aa_mutants, generate_n_mutant_combinations
 
+def exp_process(wt_seq, mutant_file, n_mutant, threshold, gradio_tmp):
+    project_root = gradio_tmp
+    wt_fasta = os.path.join(project_root, 'data', 'exp', 'wt_fasta', 'WT.fasta')
+    os.makedirs(os.path.dirname(wt_fasta), exist_ok=True)
+    generate_wt(wt_seq, wt_fasta)
+
+    output_file = os.path.join(project_root, 'output', 'exp', 'mutant.fasta')
+    os.makedirs(os.path.dirname(output_file), exist_ok=True)
+    generate_single_aa_mutants(wt_fasta, output_file)
+    
+    generate_n_mutant_combinations(wt_fasta, mutant_file, n=n_mutant, output_file=output_file, threshold=threshold)
+
+    return output_file
 
 def predict_evolvepro(
     protein_name,

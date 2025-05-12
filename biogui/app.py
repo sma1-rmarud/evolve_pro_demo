@@ -1,112 +1,99 @@
-import gradio as gr
-import tempfile
 import os
+import tempfile
+from functools import partial
 
-from biogui.utils.evolvepro_utils import predict_evolvepro
-from biogui.utils.gnn_utils import predict_gnn
+import gradio as gr
 
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-custom_tmp = os.path.join(BASE_DIR, "tmp_gradio")
-os.makedirs(custom_tmp, exist_ok=True)
-tempfile.tempdir = custom_tmp
-os.environ["GRADIO_TEMP_DIR"] = custom_tmp
+from biogui.utils.evolvepro_utils import predict_evolvepro, exp_process
 
-def upload_file(files):
-    file_paths = [file.name for file in files]
-    return file_paths
-
-
-with gr.Blocks() as demo:
-    gr.Markdown(
-        """
-        <h1 style='text-align: center'>
-        🧬ES activity prediction using Deep Learning
-        </h1>
-        """,
-        elem_id="title",
-    )
-
-    with gr.Tab(label='EvolvePro'):
-        protein_name = gr.Textbox(
-            label="protein name", placeholder="Enter protein name"
-        )
-        input_sequence = gr.Textbox(
-            label="sequence to generate wildtype",
-            placeholder="Enter sequence to generate wildtype",
-        )
-        embedding_model = gr.Radio(
-            ["esm1b_t33_650M_UR50S", "esm2_t36_3B_UR50D"],
-            label="embedding model",
-            info="Choose your embedding model",
-            value="esm1b_t33_650M_UR50S",
-        )
-        toks_per_batch = gr.Slider(
-            label="tokens per batch",
-            value=512,
-            minimum=1,
-            maximum=4096,
-            step=1,
-            info="Choose the number of tokens per batch for embedding extraction",
-        )
-        num_rounds = gr.Dropdown(
-            list(range(1, 20)),
-            label="number of rounds",
-            info="Choose the number of rounds for evolution",
-            value="1",
-        )
-        number_of_variants = gr.Dropdown(
-            list(range(1, 20)),
-            label="number of variants",
-            info="Choose the number of variants for evolution",
-            value="12",
-        )
-        round_files = gr.Files(
-            file_types=[".xlsx"],
-            label="experimental round activity files",
-            file_count="multiple",
+with tempfile.TemporaryDirectory() as gradio_tmp:
+    with gr.Blocks() as demo:
+        gr.Markdown(
+            """
+            <h1 style='text-align: center'>
+            🧬ES activity prediction using Deep Learning
+            </h1>
+            """,
+            elem_id="title",
         )
 
-        output_img = gr.Image(label="output image")
-        predict_button = gr.Button("predict")
+        with gr.Tab(label='EvolvePro_run_n_mutants'):
+            gr.Markdown("## 🔬 Generate N-mutant Combinations")
+            
+            wt_seq = gr.Textbox(label="Wildtype Sequence", placeholder="MMA...")
+            mutant_file = gr.File(file_types=[".xlsx"], label="Upload Mutant Excel File")
+            n_mutant = gr.Dropdown([1, 2, 3, 4, 5, 6, 7, 8, 9, 10], label="Number of Mutations (n)", value=1)
+            threshold = gr.Number(label="Activity Threshold", value=1.0)
+            
+            output_file = gr.File(label="Generated mutant FASTA")
 
-        predict_button.click(
-            fn=predict_evolvepro,
-            inputs=[
-                protein_name,
-                input_sequence,
-                num_rounds,
-                embedding_model,
-                toks_per_batch,
-                number_of_variants,
-                round_files,
-            ],
-            outputs=[output_img],
-        )
+            generate_button = gr.Button("Generate Mutants")
+            exp_process = partial(
+                exp_process,
+                gradio_tmp=gradio_tmp,
+            )
+            generate_button.click(
+                fn=exp_process,
+                inputs=[wt_seq, mutant_file, n_mutant, threshold],
+                outputs=[output_file]
+            )
 
-    # with gr.Tab(label='Ours'):
-    #     with gr.Row(variant='panel'):
-    #         with gr.Column(scale=4):
-    #             file_format_choice = gr.Radio(
-    #                 ["PDB", "CIF"],
-    #                 label="File format",
-    #                 info="Choose your structure file format",
-    #             )
-    #         with gr.Column(scale=6):
-    #             file_output = gr.Files(file_types=[".cif", ".pdb"])
-    #             upload_button = gr.UploadButton(
-    #                 "Click to Upload a File",
-    #                 file_types=[".cif", ".pdb"],
-    #                 file_count="multiple",
-    #             )
-    #             upload_button.upload(upload_file, upload_button, file_output)
+        with gr.Tab(label='EvolvePro_run_round'):
+            gr.Markdown("## 🔬 Run EvolvePro Evolution Round ")
+            protein_name = gr.Textbox(
+                label="protein name", placeholder="Enter protein name"
+            )
+            input_sequence = gr.Textbox(
+                label="sequence to generate wildtype",
+                placeholder="Enter sequence to generate wildtype",
+            )
+            embedding_model = gr.Radio(
+                ["esm1b_t33_650M_UR50S", "esm2_t36_3B_UR50D"],
+                label="embedding model",
+                info="Choose your embedding model",
+                value="esm1b_t33_650M_UR50S",
+            )
+            toks_per_batch = gr.Slider(
+                label="tokens per batch",
+                value=512,
+                minimum=1,
+                maximum=4096,
+                step=1,
+                info="Choose the number of tokens per batch for embedding extraction",
+            )
+            num_rounds = gr.Dropdown(
+                list(range(1, 20)),
+                label="number of rounds",
+                info="Choose the number of rounds for evolution",
+                value="1",
+            )
+            number_of_variants = gr.Dropdown(
+                list(range(1, 20)),
+                label="number of variants",
+                info="Choose the number of variants for evolution",
+                value="12",
+            )
+            round_files = gr.Files(
+                file_types=[".xlsx"],
+                label="experimental round activity files",
+                file_count="multiple",
+            )
 
-    #     output_text = gr.Textbox(label="Predicted activity label")
-    #     predict_button = gr.Button("predict")
+            output_img = gr.Image(label="output image")
+            predict_button = gr.Button("predict")
 
-    #     predict_button.click(
-    #         fn=predict_gnn,
-    #         inputs=[file_format_choice, file_output],
-    #         outputs=[output_text],
-    #     )
+            predict_button.click(
+                fn=predict_evolvepro,
+                inputs=[
+                    protein_name,
+                    input_sequence,
+                    num_rounds,
+                    embedding_model,
+                    toks_per_batch,
+                    number_of_variants,
+                    round_files,
+                ],
+                outputs=[output_img],
+            )
 
-demo.launch()
+    demo.launch(debug=True)
