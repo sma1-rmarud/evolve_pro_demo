@@ -3,6 +3,7 @@ import tempfile
 from functools import partial
 
 import gradio as gr
+from biogui.utils.gradio_utils import update_n_and_length
 
 from biogui.utils.evolvepro_utils import predict_evolvepro, exp_process
 
@@ -21,9 +22,12 @@ with tempfile.TemporaryDirectory() as gradio_tmp:
             gr.Markdown("## 🔬 Generate N-mutant Combinations")
             
             wt_seq = gr.Textbox(label="Wildtype Sequence", placeholder="MMA...")
+            seq_len_display = gr.Textbox(label="Sequence Length", interactive=False)
             mutant_file = gr.File(file_types=[".xlsx"], label="Upload Mutant Excel File")
-            n_mutant = gr.Dropdown([1, 2, 3, 4, 5, 6, 7, 8, 9, 10], label="Number of Mutations (n)", value=1)
-            threshold = gr.Number(label="Activity Threshold", value=1.0)
+            n_mutant = gr.Dropdown([1, 2, 3, 4, 5, 6, 7, 8, 9, 10], label="Number of Mutations (n)", value=1, interactive=True)
+            threshold = gr.Number(label="Activity Threshold (e.g., 0.0 ~ 1.0)", value=1.0)
+
+            wt_seq.change(fn=update_n_and_length, inputs=wt_seq, outputs=[n_mutant, seq_len_display])
             
             output_file = gr.File(label="Generated mutant FASTA")
 
