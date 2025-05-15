@@ -1,5 +1,7 @@
 # ES activity prediction using Deep Learning
 
+We made gradio demo for evolvepro, we hope this can be used for progress in bio research
+
 ## Installation
 
 ```bash
