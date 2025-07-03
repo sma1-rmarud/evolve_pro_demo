@@ -1,11 +1,11 @@
 import os
 import tempfile
 from functools import partial
+import pandas as pd
 
 import gradio as gr
-from biogui.utils.gradio_utils import update_n_and_length
 
-from biogui.utils.evolvepro_utils import predict_evolvepro, exp_process
+from biogui.utils.evolvepro_utils import predict_evolvepro, predict_n_mutants
 
 with tempfile.TemporaryDirectory() as gradio_tmp:
     with gr.Blocks() as demo:
@@ -17,30 +17,6 @@ with tempfile.TemporaryDirectory() as gradio_tmp:
             """,
             elem_id="title",
         )
-
-        with gr.Tab(label='EvolvePro_run_n_mutants'):
-            gr.Markdown("## 🔬 Generate N-mutant Combinations")
-            
-            wt_seq = gr.Textbox(label="Wildtype Sequence", placeholder="MMA...")
-            seq_len_display = gr.Textbox(label="Sequence Length", interactive=False)
-            mutant_file = gr.File(file_types=[".xlsx"], label="Upload Mutant Excel File")
-            n_mutant = gr.Dropdown([1, 2, 3, 4, 5, 6, 7, 8, 9, 10], label="Number of Mutations (n)", value=1, interactive=True)
-            threshold = gr.Number(label="Activity Threshold (e.g., 0.0 ~ 1.0)", value=1.0)
-
-            wt_seq.change(fn=update_n_and_length, inputs=wt_seq, outputs=[n_mutant, seq_len_display])
-            
-            output_file = gr.File(label="Generated mutant FASTA")
-
-            generate_button = gr.Button("Generate Mutants")
-            exp_process = partial(
-                exp_process,
-                gradio_tmp=gradio_tmp,
-            )
-            generate_button.click(
-                fn=exp_process,
-                inputs=[wt_seq, mutant_file, n_mutant, threshold],
-                outputs=[output_file]
-            )
 
         with gr.Tab(label='EvolvePro_run_round'):
             gr.Markdown("## 🔬 Run EvolvePro Evolution Round ")
@@ -59,7 +35,7 @@ with tempfile.TemporaryDirectory() as gradio_tmp:
             )
             toks_per_batch = gr.Slider(
                 label="tokens per batch",
-                value=512,
+                value=4096,
                 minimum=1,
                 maximum=4096,
                 step=1,
@@ -84,6 +60,31 @@ with tempfile.TemporaryDirectory() as gradio_tmp:
             )
 
             output_img = gr.Image(label="output image")
+            
+            output_table_variants = gr.Dataframe(
+                                        value=pd.DataFrame(),
+                                        headers=[],
+                                        datatype=[],
+                                        col_count=(0, "fixed"),
+                                        row_count=(0, "fixed"),
+                                        label="Tested variants in this round")
+            
+            output_table_test = gr.Dataframe(
+                                        value=pd.DataFrame(),
+                                        headers=[],
+                                        datatype=[],
+                                        col_count=(0, "fixed"),
+                                        row_count=(0, "fixed"),
+                                        label="Top variants predicted by the model")
+            
+            output_table_sorted = gr.Dataframe(
+                                        value=pd.DataFrame(),
+                                        headers=[],
+                                        datatype=[],
+                                        col_count=(0, "fixed"),
+                                        row_count=(0, "fixed"),
+                                        label="Sorted all(train+test) the variants with y_pred")
+
             predict_button = gr.Button("predict")
 
             predict_button.click(
@@ -95,9 +96,71 @@ with tempfile.TemporaryDirectory() as gradio_tmp:
                     embedding_model,
                     toks_per_batch,
                     number_of_variants,
-                    round_files,
+                    round_files
                 ],
-                outputs=[output_img],
+                outputs=[output_img, output_table_variants, output_table_test, output_table_sorted],
             )
+            
+        with gr.Tab(label='EvolvePro_run_n_mutants'):
+            gr.Markdown("## 🔬 Generate and Predict N-Mutant Combinations")
+
+            wt_seq = gr.Textbox(label="Wildtype Sequence", placeholder="MMA...")
+
+            mutant_file = gr.Files(
+                file_types=[".xlsx"],
+                label="Mutant activity Excel (with Variant, Activity)",
+                file_count="multiple",
+            )
+
+            n_mutant = gr.Dropdown([1, 2, 3, 4, 5], label="Number of Mutations (n)", value=3)
+            threshold = gr.Number(label="Activity Threshold", value=0.7)
+            embedding_model = gr.Radio(
+                ["esm1b_t33_650M_UR50S", "esm2_t36_3B_UR50D"],
+                label="Embedding Model",
+                value="esm1b_t33_650M_UR50S"
+            )
+            toks_per_batch = gr.Slider(minimum=1, maximum=4096, value=4096, label="Tokens per batch")
+            number_of_variants = gr.Slider(minimum=1, maximum=50, value=12, label="Top-N to select")
+
+            output_img = gr.Image(label="output image")
+            
+            output_table_variants = gr.Dataframe(
+                                        value=pd.DataFrame(),
+                                        headers=[],
+                                        datatype=[],
+                                        col_count=(0, "fixed"),
+                                        row_count=(0, "fixed"),
+                                        label="Tested variants in this round")
+            
+            output_table_test = gr.Dataframe(
+                                        value=pd.DataFrame(),
+                                        headers=[],
+                                        datatype=[],
+                                        col_count=(0, "fixed"),
+                                        row_count=(0, "fixed"),
+                                        label="Top variants predicted by the model")
+            
+            output_table_sorted = gr.Dataframe(
+                                        value=pd.DataFrame(),
+                                        headers=[],
+                                        datatype=[],
+                                        col_count=(0, "fixed"),
+                                        row_count=(0, "fixed"),
+                                        label="Sorted all(train+test) the variants with y_pred")
+
+            predict_button = gr.Button("generate ansd predict")
+            predict_button.click(
+                fn=predict_n_mutants,
+                inputs=[
+                    wt_seq, mutant_file, n_mutant, threshold,
+                    embedding_model, toks_per_batch, number_of_variants
+                ],
+                outputs=[
+                    output_img, output_table_variants, output_table_test, output_table_sorted
+                ]
+            )
+
+
+
 
     demo.launch(debug=True)
