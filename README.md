@@ -8,7 +8,7 @@ We made gradio demo for evolvepro, we hope this can be used for progress in bio 
 conda create -n bio python=3.10 -y
 conda activate bio
 
-git clone --recurse-submodules https://github.com/sma1-rmarud/protein_demo.git
+git clone --recurse-submodules https://github.com/sma1-rmarud/evolve_pro_demo.git
 cd protein_demo
 
 pip install -e .
