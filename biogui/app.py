@@ -110,12 +110,12 @@ with tempfile.TemporaryDirectory() as gradio_tmp:
 
             s_mutant_file = gr.Files(
                 file_types=[".xlsx"],
-                label="Mutant activity Excel (with Variant, Activity)",
+                label="Single Mutant activity Excel (with Variant, Activity)",
                 file_count="multiple",
             )
             m_mutant_file = gr.Files(
                 file_types=[".xlsx"],
-                label="Mutant activity Excel (with Variant, Activity)",
+                label="Multiple Mutant activity Excel (with Variant, Activity)",
                 file_count="multiple",
             )
 
