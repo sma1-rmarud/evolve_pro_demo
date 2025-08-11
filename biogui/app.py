@@ -5,7 +5,7 @@ import pandas as pd
 
 import gradio as gr
 
-from biogui.utils.evolvepro_utils import predict_evolvepro, predict_n_mutants
+from biogui.utils.evolvepro_utils_v2 import predict_evolvepro, predict_n_mutants
 
 with tempfile.TemporaryDirectory() as gradio_tmp:
     with gr.Blocks() as demo:

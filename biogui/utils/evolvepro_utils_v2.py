@@ -129,6 +129,7 @@ def predict_n_mutants(
         m_round_files = sorted([Path(file) for file in m_mutant_file])
 
     with tempfile.TemporaryDirectory() as temp_dir:
+        embeddings_file_names = []
         logger.info(f"Creating Wildtype sequence file for {protein_name}")
         wt_file = os.path.join(temp_dir, f"{protein_name}_WT.fasta")
         generate_wt(input_sequence, wt_file)
@@ -173,35 +174,37 @@ def predict_n_mutants(
         single_fasta_name = f"single_{protein_name}_fasta"
         single_embedding_csv_name = f"{single_fasta_name}_{embedding_model}.csv"
         concatenate_files(args_single.output_dir, os.path.join(embedding_dir, single_embedding_csv_name))
-        
-        n_mutant_fasta = os.path.join(temp_dir, f"dataset_{n_mutant}th.fasta")
-        generate_n_mutant_combinations(
-            wt_file, merged_output_path, n=n_mutant,
-            output_file=n_mutant_fasta, threshold=threshold,
-        )
-        
-        args_n_mutant = Namespace(
-            model_location=embedding_model,
-            fasta_file=n_mutant_fasta,
-            output_dir=Path(os.path.join(embedding_dir, "n_mutants_emb")),
-            toks_per_batch=toks_per_batch,
-            repr_layers=[-1],
-            include=["mean"],
-            truncation_seq_length=1022,
-            nogpu=False,
-            concatenate_dir=concatenate_dir,
-        )
-        extract_embeddings(args_n_mutant)
+        embeddings_file_names.append(single_embedding_csv_name)
+        for n in range(n_mutant, 1, -1):
+            n_mutant_fasta = os.path.join(temp_dir, f"dataset_{n}th.fasta")
+            generate_n_mutant_combinations(
+                wt_file, merged_output_path, n=n,
+                output_file=n_mutant_fasta, threshold=threshold,
+            )
+            
+            args_n_mutant = Namespace(
+                model_location=embedding_model,
+                fasta_file=n_mutant_fasta,
+                output_dir=Path(os.path.join(embedding_dir, f"n_mutants_emb_{n}")),
+                toks_per_batch=toks_per_batch,
+                repr_layers=[-1],
+                include=["mean"],
+                truncation_seq_length=1022,
+                nogpu=False,
+                concatenate_dir=concatenate_dir,
+            )
+            extract_embeddings(args_n_mutant)
 
-        n_mutant_fasta_name = f"n_mutant_{protein_name}_fasta"
-        n_mutant_embedding_csv_name = f"{n_mutant_fasta_name}_{embedding_model}.csv"
-        concatenate_files(args_n_mutant.output_dir, os.path.join(embedding_dir, n_mutant_embedding_csv_name))
-
+            n_mutant_fasta_name = f"n_mutant_{protein_name}_fasta{n}"
+            n_mutant_embedding_csv_name = f"{n_mutant_fasta_name}_{embedding_model}.csv"
+            concatenate_files(args_n_mutant.output_dir, os.path.join(embedding_dir, n_mutant_embedding_csv_name))
+            embeddings_file_names.append(n_mutant_embedding_csv_name)
+        
         this_round_variants, df_test, df_sorted_all = evolve_experimental_multi(
             protein_name=protein_name,
             round_name=f"Round_n{n_mutant}",
             embeddings_base_path=embedding_dir,
-            embeddings_file_names=[single_embedding_csv_name, n_mutant_embedding_csv_name],
+            embeddings_file_names=embeddings_file_names,
             round_base_path=round_data_dir,
             round_file_names_single=round_files,
             round_file_names_multi=m_round_files,
