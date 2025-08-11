@@ -5,7 +5,7 @@ import pandas as pd
 
 import gradio as gr
 
-from biogui.utils.evolvepro_utils import predict_evolvepro, predict_n_mutants
+from biogui.utils.evolvepro_utils_v2 import predict_evolvepro, predict_n_mutants
 
 with tempfile.TemporaryDirectory() as gradio_tmp:
     with gr.Blocks() as demo:
@@ -103,17 +103,24 @@ with tempfile.TemporaryDirectory() as gradio_tmp:
             
         with gr.Tab(label='EvolvePro_run_n_mutants'):
             gr.Markdown("## 🔬 Generate and Predict N-Mutant Combinations")
+            protein_name = gr.Textbox(
+                label="protein name", placeholder="Enter protein name"
+            )
+            input_sequence = gr.Textbox(label="Wildtype Sequence", placeholder="MMA...")
 
-            wt_seq = gr.Textbox(label="Wildtype Sequence", placeholder="MMA...")
-
-            mutant_file = gr.Files(
+            s_mutant_file = gr.Files(
                 file_types=[".xlsx"],
-                label="Mutant activity Excel (with Variant, Activity)",
+                label="Single Mutant activity Excel (with Variant, Activity)",
+                file_count="multiple",
+            )
+            m_mutant_file = gr.Files(
+                file_types=[".xlsx"],
+                label="Multiple Mutant activity Excel (with Variant, Activity)",
                 file_count="multiple",
             )
 
             n_mutant = gr.Dropdown([1, 2, 3, 4, 5], label="Number of Mutations (n)", value=3)
-            threshold = gr.Number(label="Activity Threshold", value=0.7)
+            threshold = gr.Number(label="Activity Threshold", value=1)
             embedding_model = gr.Radio(
                 ["esm1b_t33_650M_UR50S", "esm2_t36_3B_UR50D"],
                 label="Embedding Model",
@@ -152,7 +159,7 @@ with tempfile.TemporaryDirectory() as gradio_tmp:
             predict_button.click(
                 fn=predict_n_mutants,
                 inputs=[
-                    wt_seq, mutant_file, n_mutant, threshold,
+                    protein_name, input_sequence, s_mutant_file, m_mutant_file, n_mutant, threshold,
                     embedding_model, toks_per_batch, number_of_variants
                 ],
                 outputs=[
