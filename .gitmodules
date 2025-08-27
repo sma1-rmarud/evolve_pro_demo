@@ -3,5 +3,5 @@
     url = https://github.com/mat10d/EvolvePro.git
 
 [submodule "external/alphafold3"]
-    path = external/alphafold3
-    url = https://github.com/google-deepmind/alphafold3.git
+	path = external/alphafold3
+	url = https://github.com/google-deepmind/alphafold3.git
