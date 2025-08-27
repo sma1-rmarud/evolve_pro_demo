@@ -4,4 +4,4 @@
 
 [submodule "external/alphafold3"]
 	path = external/alphafold3
-	url = https://github.com/google-deepmind/alphafold3.git
+	url = https://github.com/sma1-rmarud/alphafold3.git
