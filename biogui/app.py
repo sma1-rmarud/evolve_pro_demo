@@ -6,6 +6,7 @@ import pandas as pd
 import gradio as gr
 
 from biogui.utils.evolvepro_utils_v2 import predict_evolvepro, predict_n_mutants
+from biogui.utils.esm3_utils import run_ours
 
 with tempfile.TemporaryDirectory() as gradio_tmp:
     with gr.Blocks() as demo:
@@ -155,7 +156,7 @@ with tempfile.TemporaryDirectory() as gradio_tmp:
                                         row_count=(0, "fixed"),
                                         label="Sorted all(train+test) the variants with y_pred")
 
-            predict_button = gr.Button("generate ansd predict")
+            predict_button = gr.Button("generate and predict")
             predict_button.click(
                 fn=predict_n_mutants,
                 inputs=[
@@ -168,6 +169,31 @@ with tempfile.TemporaryDirectory() as gradio_tmp:
             )
 
 
+        with gr.Tab(label='Run_ours_esm3_finetuned'):
+            gr.Markdown("## 🔬 Predict activity score with our model")
+            protein_name = gr.Textbox(
+                label="protein name", placeholder="Enter protein name"
+            )
+            input_sequence_wt = gr.Textbox(label="Wildtype Sequence", placeholder="MMA...")
+            ligand_smiles = gr.Textbox(label="Smiles code of ligand", placeholder="CC1([C@...")
+            
+            csv_file = gr.File(
+                file_types=[".csv"],
+                label="files to predict"
+            )
+            
+            pwd_path = gr.Textbox(label="Path to the output folder", value='./biogui/utils/result')
+            
+            predict_button = gr.Button("generate and run")
+            predict_button.click(
+                fn=run_ours,
+                inputs=[
+                    protein_name, input_sequence_wt, ligand_smiles, csv_file
+                ],
+                outputs=[
+                    pwd_path
+                ]
+            )
 
 
     demo.launch(debug=True)
