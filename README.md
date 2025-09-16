@@ -9,13 +9,19 @@ conda create -n bio python=3.10 -y
 conda activate bio
 
 git clone --recurse-submodules https://github.com/sma1-rmarud/evolve_pro_demo.git
-cd protein_demo
+cd evolve_pro_demo
 
 pip install -e .
+
+cd external/evolve_pro_demo_alphafold
+./fetch_databases.sh ../Database
+
+# af3.bin.zst 파일을 Model_param에 위치시켜야 
+
 ```
 
 ## Usage
-
+[warning] You need Docker to run our finetuned esm3 model
 To run the GUI server, execute: 
 ```bash
 ./run_gui.sh
