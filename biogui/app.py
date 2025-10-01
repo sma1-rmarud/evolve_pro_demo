@@ -175,23 +175,26 @@ with tempfile.TemporaryDirectory() as gradio_tmp:
                 label="protein name", placeholder="Enter protein name"
             )
             input_sequence_wt = gr.Textbox(label="Wildtype Sequence", placeholder="MMA...")
-            ligand_smiles = gr.Textbox(label="Smiles code of ligand", placeholder="CC1([C@...")
+            ligand_name = gr.Textbox(
+                label="ligand name", placeholder="Enter ligand name", value=None
+            )
+            ligand_smiles = gr.Textbox(label="Smiles code of ligand", placeholder="CC1([C@...", value=None)
             
             csv_file = gr.File(
                 file_types=[".csv"],
                 label="files to predict"
             )
             
-            pwd_path = gr.Textbox(label="Path to the output folder", value='./biogui/utils/result')
+            output_csv = gr.File(label="Download predictions CSV")
             
             predict_button = gr.Button("generate and run")
             predict_button.click(
                 fn=run_ours,
                 inputs=[
-                    protein_name, input_sequence_wt, ligand_smiles, csv_file
+                    protein_name, input_sequence_wt, ligand_name, ligand_smiles, csv_file
                 ],
                 outputs=[
-                    pwd_path
+                    output_csv
                 ]
             )
 

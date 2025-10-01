@@ -6,25 +6,40 @@ import subprocess
 import os
 import json
 from pathlib import Path
+from ours_model.inference import run as run_ours_model
 
-# def run_alphafold(protein_name: str):
-#     present_dir = os.path.dirname(os.path.abspath(__file__))
-#     run_sh_path = "/evolve_pro_demo/external/evolve_pro_demo_alphafold/alphafold3/run.sh"
+
+def run_alphafold(protein_name: str,ligand_name: str):
+    run_sh_path = "../../external/evolve_pro_demo_alphafold/alphafold3/run.sh"
     
-#     env = os.environ.copy()
-#     env["protein_name"] = protein_name
+    env = os.environ.copy()
+    env["protein_name"] = protein_name
+    env["ligand_name"] = ligand_name
+    try:
+        subprocess.run(
+            ["bash", run_sh_path],
+            check=True,
+            env=env
+        )
+    except subprocess.CalledProcessError as e:
+        print(f"Error while running run.sh: {e}")
+
+def run_post_alphafold(protein_name: str,ligand_name: str):
+    run_sh_path = "./alphafold3_postprocess.sh"
     
-#     try:
-#         subprocess.run(
-#             ["bash", run_sh_path],
-#             check=True,
-#             env=env
-#         )
-#     except subprocess.CalledProcessError as e:
-#         print(f"Error while running run.sh: {e}")
+    env = os.environ.copy()
+    env["protein_name"] = protein_name
+    env["ligand_name"] = ligand_name
+    try:
+        subprocess.run(
+            ["bash", run_sh_path],
+            check=True,
+            env=env
+        )
+    except subprocess.CalledProcessError as e:
+        print(f"Error while running run.sh: {e}")
 
-
-def run_ours(protein_name, input_sequence_wt, ligand_smiles, csv_file):                        
+def run_ours(protein_name, input_sequence_wt, ligand_name, ligand_smiles, csv_file):                        
     # RMMFAAAACIPLLLGSAPLYAQTSAVQQKLAALEKSSGGRLGVALIDTADNTQVLYRGDERFPMCSTSKVMAAAAVLKQSETQKQLLNQPVEIKPADLVNYNPIAEKHVNGTMTLAELSAAALQYSDNTAMNKLIAQLGGPGGVTAFARAIGDETFRLDRTEPTLNTAIPGDPRDTTTPRAMAQTLRQLTLGHALGETQRAQLVTWLKGNTTGAASIRAGLPTSWTVGDKTGSGDYGTTNDIAVIWPQGRAPLVLVTYFTQPQQNAESRRDVLASAARIIAEGL
     # CC1([C@@H](N2[C@H](S1)[C@@H](C2=O)NC(=O)[C@@H](C3=CC=CC=C3)N)C(=O)O)C
     if len(csv_file) == 0:
@@ -34,11 +49,15 @@ def run_ours(protein_name, input_sequence_wt, ligand_smiles, csv_file):
     print(present_dir)
     output_fasta = os.path.join(f"{present_dir}/result", f"{protein_name}.fasta")
     os.makedirs(os.path.dirname(output_fasta), exist_ok=True)
-    
-    wt_sequence = str(input_sequence_wt)
-    data = pd.read_csv(csv_file)
-    mutated_sequences = []
+    sequences = []
     row_mutations = []
+
+    wt_sequence = str(input_sequence_wt)
+    header = (
+            f">wt| "
+    )
+    sequences.append((header, "".join(wt_sequence)))    
+    data = pd.read_csv(csv_file)
     
     for idx, row in enumerate(data['Variant']):
         print(row)
@@ -55,8 +74,10 @@ def run_ours(protein_name, input_sequence_wt, ligand_smiles, csv_file):
             mutations.append((orig, pos, mut))
         row_mutations.append(mutations)
     print(row_mutations)
+
     for i, muts in enumerate(row_mutations):
         seq = list(wt_sequence)
+        data['wt_seq'] = wt_sequence
         L = len(seq)
 
         seen = {}
@@ -76,19 +97,23 @@ def run_ours(protein_name, input_sequence_wt, ligand_smiles, csv_file):
         header = (
             f">fold_job_{i+1}| "
         )
-        
+        data['mut_seq'] = "".join(seq)
 
-        mutated_sequences.append((header, "".join(seq)))
+        sequences.append((header, "".join(seq)))
 
 
     with open(output_fasta, "w") as f:
-        for header, seq in mutated_sequences:
+        for header, seq in sequences:
             f.write(f"{header}\n{seq}\n")
+    
+    new_csv = f"{present_dir}/result", f"processed_{protein_name}_{ligand_name}.csv"
+            
+    data.to_csv(os.path.join(new_csv), index=False)
 
-    json_output_dir = os.path.join(f"{present_dir}/result", f"{protein_name}_csv2json")
+    json_output_dir = os.path.join(f"{present_dir}/result", f"{protein_name}_{ligand_name}_csv2json")
     os.makedirs(json_output_dir, exist_ok=True)
 
-    structure_output_dir = os.path.join(f"{present_dir}/result", f"{protein_name}_structure")
+    structure_output_dir = os.path.join(f"{present_dir}/result", f"{protein_name}_{ligand_name}_structure_raw")
     os.makedirs(structure_output_dir, exist_ok=True)
 
     with open(output_fasta, "r") as f:
@@ -101,33 +126,50 @@ def run_ours(protein_name, input_sequence_wt, ligand_smiles, csv_file):
             if line.startswith(">"):
                 if current_sequence and header:
                     header_name = header.split("|")[0][1:]
-                    combined_name = f"{os.path.splitext(os.path.basename(output_fasta))[0]}_{header_name}"
-
-                    json_data = {
-                        "name": combined_name,
-                        "modelSeeds": [42],
-                        "sequences": [
-                            {
-                                "protein": {
-                                    "id": "A",
-                                    "sequence": current_sequence,
-                                    "unpairedMsa": None,
-                                    "pairedMsa": None,
-                                    "templates": []
+                    if ligand_name :
+                        json_data = {
+                            "name": header_name,
+                            "modelSeeds": [42],
+                            "sequences": [
+                                {
+                                    "protein": {
+                                        "id": "A",
+                                        "sequence": current_sequence,
+                                        "unpairedMsa": None,
+                                        "pairedMsa": None,
+                                        "templates": []
+                                    }
+                                },
+                                {
+                                    "ligand": {
+                                        "id": "B",
+                                        "smiles": ligand_smiles
+                                    }
                                 }
-                            },
-                            {
-                                "ligand": {
-                                    "id": "B",
-                                    "smiles": ligand_smiles
+                            ],
+                            "dialect": "alphafold3",
+                            "version": 1
+                        }
+                    else:
+                        json_data = {
+                            "name": header_name,
+                            "modelSeeds": [42],
+                            "sequences": [
+                                {
+                                    "protein": {
+                                        "id": "A",
+                                        "sequence": current_sequence,
+                                        "unpairedMsa": None,
+                                        "pairedMsa": None,
+                                        "templates": []
+                                    }
                                 }
-                            }
-                        ],
-                        "dialect": "alphafold3",
-                        "version": 1
-                    }
+                            ],
+                            "dialect": "alphafold3",
+                            "version": 1
+                        }
 
-                    output_json = os.path.join(json_output_dir, f"{combined_name}.json")
+                    output_json = os.path.join(json_output_dir, f"{header_name}.json")
                     with open(output_json, "w") as json_file:
                         json.dump(json_data, json_file, indent=4)
 
@@ -138,41 +180,61 @@ def run_ours(protein_name, input_sequence_wt, ligand_smiles, csv_file):
 
         if current_sequence and header:
             header_name = header.split("|")[0][1:]
-            combined_name = f"{os.path.splitext(os.path.basename(output_fasta))[0]}_{header_name}"
-
-            json_data = {
-                "name": combined_name,
-                "modelSeeds": [42],
-                "sequences": [
-                    {
-                        "protein": {
-                            "id": "A",
-                            "sequence": current_sequence,
-                            "unpairedMsa": None,
-                            "pairedMsa": None,
-                            "templates": []
+            if ligand_name :
+                json_data = {
+                    "name": header_name,
+                    "modelSeeds": [42],
+                    "sequences": [
+                        {
+                            "protein": {
+                                "id": "A",
+                                "sequence": current_sequence,
+                                "unpairedMsa": None,
+                                "pairedMsa": None,
+                                "templates": []
+                            }
+                        },
+                        {
+                            "ligand": {
+                                "id": "B",
+                                "smiles": ligand_smiles
+                            }
                         }
-                    },
-                    {
-                        "ligand": {
-                            "id": "B",
-                            "smiles": ligand_smiles
+                    ],
+                    "dialect": "alphafold3",
+                    "version": 1
+                }
+            else:
+                json_data = {
+                    "name": header_name,
+                    "modelSeeds": [42],
+                    "sequences": [
+                        {
+                            "protein": {
+                                "id": "A",
+                                "sequence": current_sequence,
+                                "unpairedMsa": None,
+                                "pairedMsa": None,
+                                "templates": []
+                            }
                         }
-                    }
-                ],
-                "dialect": "alphafold3",
-                "version": 1
-            }
+                    ],
+                    "dialect": "alphafold3",
+                    "version": 1
+                }
 
-            output_json = os.path.join(json_output_dir, f"{combined_name}.json")
+
+            output_json = os.path.join(json_output_dir, f"{header_name}.json")
             with open(output_json, "w") as json_file:
                 json.dump(json_data, json_file, indent=4)
 
             print(f"JSON 파일 생성 완료: {output_json}")
-            
-    
-            
-        
-            
-            
+    if not ligand_name :
+        ligand_name = "None"
 
+    run_alphafold(protein_name, ligand_name)
+    run_post_alphafold(protein_name, ligand_name)
+    new_struct_dir = os.path.join(f"{present_dir}/result", f"{protein_name}_{ligand_name}_structure_processed")
+    ckpt_path = "./chpt/esm3_finetuned.pth"
+    out_csv = os.path.join(f"{present_dir}/result", f"{protein_name}_{ligand_name}_predicted.csv") # 다운로드 받을수 있게...
+    run_ours_model(new_csv, new_struct_dir, ckpt_path, out_csv, device="cuda:0", bs=2, d_model=1536)
