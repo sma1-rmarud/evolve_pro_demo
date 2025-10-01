@@ -2,9 +2,6 @@
     path = external/evolvepro
     url = https://github.com/mat10d/EvolvePro.git
 
-[submodule "external/evolve_pro_demo_alphafold"]
-	path = external/evolve_pro_demo_alphafold
-	url = https://github.com/sma1-rmarud/alphafold3.git
 [submodule "external/evolve_pro_demo_alphafold/alphafold3"]
 	path = external/evolve_pro_demo_alphafold/alphafold3
 	url = https://github.com/sma1-rmarud/alphafold3.git
