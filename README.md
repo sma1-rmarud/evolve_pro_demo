@@ -14,6 +14,8 @@ cd evolve_pro_demo
 pip install -e .
 
 cd external/evolve_pro_demo_alphafold
+mkdir Database
+mkdir Model_param
 ./fetch_databases.sh ../Database
 
 # af3.bin.zst 파일을 Model_param에 위치시켜야 
