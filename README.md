@@ -10,6 +10,7 @@ conda activate bio
 
 git clone --recurse-submodules https://github.com/sma1-rmarud/evolve_pro_demo.git
 cd evolve_pro_demo
+git submodule update --remote --merge
 
 pip install -e .
 
