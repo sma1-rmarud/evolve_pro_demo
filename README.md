@@ -14,9 +14,13 @@ git submodule update --remote --merge
 
 pip install -e .
 
+cd biogui/utils
+python get_ckpts.py
+
 cd external/evolve_pro_demo_alphafold
 mkdir Database
-mkdir Model_param
+cd alphafold3
+chmod u+x fetch_databases.sh
 ./fetch_databases.sh ../Database
 
 # af3.bin.zst 파일을 Model_param에 위치시켜야 
