@@ -23,8 +23,6 @@ cd alphafold3
 chmod u+x fetch_databases.sh
 ./fetch_databases.sh ../Database
 
-# af3.bin.zst 파일을 Model_param에 위치시켜야 
-
 ```
 
 ## Usage
