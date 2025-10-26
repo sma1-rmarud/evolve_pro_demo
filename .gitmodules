@@ -1,4 +1,4 @@
 [submodule "external"]
-    path = external
-    url = https://github.com/sma1-rmarud/EvolvePro.git
+	path = external
+	url = https://github.com/sma1-rmarud/EvolvePro.git
 	branch = main
