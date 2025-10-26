@@ -1,6 +1,6 @@
 [submodule "external/evolvepro"]
     path = external/evolvepro
-    url = https://github.com/mat10d/EvolvePro.git
+    url = https://github.com/sma1-rmarud/EvolvePro.git
 	branch = main
 
 [submodule "external/evolve_pro_demo_alphafold/alphafold3"]
